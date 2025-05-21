@@ -48,7 +48,7 @@ Las contribuciones son bienvenidas. Por favor, lee [CONTRIBUTING.md](CONTRIBUTIN
 Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE.md](LICENSE.md) para más detalles.
 
 ### 👨‍💻 Autor
-- **Luis AVR** - *Desarrollo inicial* - [Tu perfil de GitHub]
+- **Luis Viña** - *Desarrollo inicial* - https://github.com/Luis96via/
 
 ### 🙏 Agradecimientos
 - OpenRouter por proporcionar acceso a modelos de lenguaje
