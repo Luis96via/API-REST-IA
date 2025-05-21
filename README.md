@@ -1,6 +1,6 @@
-# 🚀 API-REST-MCP: Plataforma de Integración con IA
+# 🚀 API-RESTFUL: Plataforma de Integración con IA
 
-## 👨‍💻 Desarrollado por Luis AVR
+## 👨‍💻 Desarrollado por Luis Viña
 
 ### Descripción
 API REST moderna y escalable desarrollada como base para un sistema avanzado de integración con modelos de lenguaje e inteligencia artificial. Este proyecto implementa una arquitectura modular que sienta las bases para la implementación del protocolo MCP (Model-Controller-Protocol) y la integración de Function Calling con agentes inteligentes.
