@@ -1,0 +1,132 @@
+Te explico cada endpoint y su utilidad:
+
+1*  /api/db/query (POST)
+*Propósito: Ejecuta consultas SQL directamente en la base de datos
+*Uso: Para operaciones SQL específicas que necesitas controlar exactamente
+*Ejemplo:
+
+{
+    "query": "SELECT * FROM usuarios WHERE id = 1"
+}
+
+
+2*  /api/chat (POST)
+
+*Propósito: Interfaz conversacional con IA para interactuar con la base de datos
+*Uso: Puedes hacer preguntas en lenguaje natural y la IA las convierte en consultas SQL
+*Ejemplo:
+
+   {
+       "messages": [
+           {
+               "role": "user",
+               "content": "¿Cuántos usuarios hay registrados?"
+           }
+       ]
+   }
+
+*Ventaja: No necesitas saber SQL, es más amigable
+*Desventaja: Menos control sobre las consultas exactas
+
+
+
+3*  /api/db/tables (GET)
+*Propósito: Lista todas las tablas disponibles
+*Uso: Para ver qué tablas existen en la base de datos
+*Ejemplo: GET http://localhost:8080/api/db/tables
+*Ventaja: Rápido para ver la estructura de la base de datos
+
+
+
+4*  /api/db/tables/{table_name} (GET)
+
+*Propósito: Obtiene el contenido de una tabla específica
+*Uso: Para ver los datos de una tabla en particular
+*Ejemplo: GET http://localhost:8080/api/db/tables/usuarios
+*Ventaja: Fácil de usar para ver datos de una tabla
+
+
+
+5*  /api/db/tables/{table_name}/structure (GET)
+
+*Propósito: Muestra la estructura (columnas, tipos de datos) de una tabla
+*Uso: Para entender cómo está definida una tabla
+*Ejemplo: GET http://localhost:8080/api/db/tables/usuarios/structure
+Ventaja: Útil para entender la estructura de la base de datos
+
+
+
+6*  /api/pedidos (POST)
+
+*Propósito: Endpoint específico para crear pedidos
+*Uso: Para la lógica de negocio específica de pedidos
+*Ejemplo:
+
+   {
+       "usuario_id": 1,
+       "items": [
+           {
+               "producto_id": 1,
+               "cantidad": 2
+           }
+       ]
+   }
+
+*Ventaja: Encapsula la lógica de negocio específica
+
+
+7*   /mcp (POST)
+*Propósito: Endpoint para operaciones MCP 
+(Modelo de Control de Procesos)
+*Uso: Para operaciones más complejas que requieren múltiples pasos
+
+*Ejemplo:
+
+
+   {
+       "action": "execute_query",
+       "params": {
+           "query": "SELECT * FROM usuarios"
+       }
+   }
+
+
+*Ventaja: Permite operaciones más complejas y automatizadas
+
+
+   ¿Por qué tener tantos endpoints si /chat puede hacer consultas?
+
+1- Diferentes niveles de abstracción:
+
+*/chat es para usuarios finales que no saben SQL
+*/api/db/query es para desarrolladores que necesitan control preciso
+*Los otros endpoints son para operaciones específicas y comunes
+
+2-  Diferentes casos de uso:
+
+*/chat es ideal para exploración y consultas ad-hoc
+*Los endpoints específicos son mejores para:
+*Integración con otros sistemas
+*Automatización
+*Operaciones repetitivas
+*Aplicaciones que necesitan respuestas rápidas y predecibles
+
+
+3-  Rendimiento y control:
+
+* Los endpoints específicos son más rápidos que /chat
+* /chat requiere procesamiento de lenguaje natural
+* Los endpoints específicos tienen validaciones y lógica de negocio incorporada
+
+4. Seguridad y mantenimiento:
+
+* Los endpoints específicos tienen validaciones más estrictas
+* Es más fácil monitorear y mantener endpoints específicos
+* /chat es más flexible pero también más difícil de controlar
+
+En resumen, aunque /chat puede hacer consultas,
+ los otros endpoints existen para diferentes necesidades 
+ y casos de uso. Es como tener diferentes herramientas
+  para diferentes trabajos: a veces necesitas un martillo
+   (endpoint específico) y otras veces un destornillador 
+   multifunción (/chat).

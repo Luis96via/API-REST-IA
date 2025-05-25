@@ -1,0 +1,28 @@
+{
+  "info": {
+    "name": "Consumir Base de Datos (MCP) (Ejemplo Paso a Paso)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Ejecutar Consulta (Ejemplo Paso a Paso)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/mcp",
+          "protocol": "http",
+          "host": [ "localhost" ],
+          "port": "8080",
+          "path": [ "mcp" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"action\": \"execute_query\", \"params\": {\"query\": \"SELECT * FROM public.tu_tabla;\"}}"
+        }
+      }
+    }
+  ]
+} 

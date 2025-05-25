@@ -1,0 +1,32 @@
+
+Y TOMA EN CUENTA QUE LOS DATOS DE SUPA BASE SON:
+
+URL: https://ssibgfbnjfzkayiixqsd.supabase.co 
+
+anonpublic: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzaWJnZmJuamZ6a2F5aWl4cXNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjQxNzEsImV4cCI6MjA2MzU0MDE3MX0.jUz8LUqBFdiec7JhgBv2ekPWdtKIXixktElyAptchDQ
+
+service_role: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzaWJnZmJuamZ6a2F5aWl4cXNkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Nzk2NDE3MSwiZXhwIjoyMDYzNTQwMTcxfQ.ADXj0LJljw-AubxNGHuVq-8VtmMX4usF_QQQ-dV_mPM
+
+JWT SECRET: fCxafAglJGuS1eGBK7OzOIuyOhaAQsr7ehn/pwsISelzBGmsm2clKK1bMG0HhJlSU0fVhXGrzFcJXJZk7uHY0Q==
+
+Access token expiry time: 3600 SECONDS 
+
+Exposed schemas: graphql_public public
+
+The schemas to expose in your API. Tables, views and stored procedures in these schemas will get API endpoints.
+
+nombre de base de datos: db_integrada_con_mvc
+
+
+PASSWORD BASE DE DATOD: 55IPTU567ARc5Ri8
+
+
+la api key de ia es: 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
+
+el modelo es: gpt-3.5-turbo-1106
+
+comando para probar conexion a la db: ping ssibgfbnjfzkayiixqsd.supabase.co
+
+
+
+LO DEJO ACA POR SI TE HACE FALTA
