@@ -17,6 +17,67 @@ API REST moderna y escalable desarrollada como base para un sistema avanzado de 
 - Sistema de caché con Redis
 - Manejo asíncrono de operaciones
 
+### 📡 Endpoints Disponibles
+
+#### 1. Interacción con Base de Datos
+- **`POST /api/db/query`**
+  - Ejecuta consultas SQL directamente
+  - Ideal para operaciones SQL específicas
+  - Requiere conocimiento de SQL
+
+- **`GET /api/db/tables`**
+  - Lista todas las tablas disponibles
+  - Útil para explorar la estructura de la base de datos
+
+- **`GET /api/db/tables/{table_name}`**
+  - Obtiene el contenido de una tabla específica
+  - Ejemplo: `/api/db/tables/usuarios`
+
+- **`GET /api/db/tables/{table_name}/structure`**
+  - Muestra la estructura y tipos de datos de una tabla
+  - Útil para entender el esquema de la base de datos
+
+#### 2. Interacción con IA
+- **`POST /api/chat`**
+  - Interfaz conversacional con IA
+  - Permite consultas en lenguaje natural
+  - Convierte preguntas en consultas SQL
+  - Ideal para usuarios no técnicos
+
+#### 3. Operaciones de Negocio
+- **`POST /api/pedidos`**
+  - Endpoint específico para gestión de pedidos
+  - Maneja la lógica de negocio de pedidos
+  - Estructura de datos optimizada
+
+#### 4. Protocolo MCP
+- **`POST /mcp`**
+  - Endpoint para operaciones del Modelo de Control de Procesos
+  - Permite operaciones complejas y automatizadas
+  - Ideal para integración con otros sistemas
+
+### 🔍 ¿Por qué múltiples endpoints?
+1. **Diferentes niveles de abstracción**
+   - `/chat` para usuarios finales
+   - `/api/db/query` para desarrolladores
+   - Endpoints específicos para operaciones comunes
+
+2. **Casos de uso específicos**
+   - Integración con otros sistemas
+   - Automatización de procesos
+   - Operaciones repetitivas
+   - Respuestas rápidas y predecibles
+
+3. **Rendimiento y control**
+   - Endpoints específicos más rápidos que `/chat`
+   - Validaciones y lógica de negocio incorporada
+   - Mayor control sobre las operaciones
+
+4. **Seguridad y mantenimiento**
+   - Validaciones estrictas en endpoints específicos
+   - Monitoreo y mantenimiento simplificado
+   - Control granular de permisos
+
 ### 🛠️ Stack Tecnológico
 #### Backend
 - **Framework Principal**: FastAPI 0.109.2
