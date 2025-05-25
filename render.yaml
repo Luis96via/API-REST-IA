@@ -1,0 +1,62 @@
+services:
+  - type: web
+    name: api-rest-mcp
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /docs
+    autoDeploy: true
+    envVars:
+      # OpenRouter
+      - key: OPENAI_API_KEY
+        value: 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
+      - key: OPENAI_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: MODEL_NAME
+        value: gpt-3.5-turbo-1106
+      - key: SITE_URL
+        value: https://api-rest-mcp.onrender.com
+      - key: SITE_NAME
+        value: API REST Python MCP
+
+      # Base de Datos Supabase
+      - key: DATABASE_URL
+        value: postgresql://postgres.ssibgfbnjfzkayiixqsd:55IPTU567ARc5Ri8@aws-0-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require
+      - key: SUPABASE_DB_URL
+        value: postgresql://postgres.ssibgfbnjfzkayiixqsd:55IPTU567ARc5Ri8@aws-0-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUz1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzaWJnZmJuamZ6a2F5aWl4cXNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjQxNzEsImV4cCI6MjA2MzU0MDE3MX0.jUz8LUqBFdiec7JhgBv2ekPWdtKIXixktElyAptchDQ
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: eyJhbGciOiJIUz1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzaWJnZmJuamZ6a2F5aWl4cXNkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Nzk2NDE3MSwiZXhwIjoyMDYzNTQwMTcxfQ.ADXj0LJljw-AubxNGHuVq-8VtmMX4usF_QQQ-dV_mPM
+
+      # MCP
+      - key: MCP_HOST
+        value: api-rest-mcp.onrender.com
+      - key: MCP_PORT
+        value: 443
+
+      # Redis y otros
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: mcp-redis
+          property: connectionString
+      - key: DEBUG
+        value: "false"
+      - key: CORS_ORIGINS
+        value: "*"
+
+databases:
+  - name: mcp-db
+    databaseName: mcp_db
+    user: mcp_user
+    plan: free
+    ipAllowList: []
+
+services:
+  - type: redis
+    name: mcp-redis
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+    persistenceEnabled: true 

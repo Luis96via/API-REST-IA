@@ -11,16 +11,40 @@ from app.exceptions import (
     ValidationError
 )
 from app.config import settings
+import asyncpg
+import logging
+from fastapi import HTTPException
+import json
+
+logger = logging.getLogger(__name__)
 
 class DatabaseService:
     def __init__(self):
         """Inicializa el servicio de base de datos"""
+        self.pool = None
         self.db_url = settings.DATABASE_URL
         if not self.db_url:
             raise ConnectionError("No se encontró la URL de conexión a la base de datos (DATABASE_URL)")
         
         # Verificar la conexión al iniciar
         self._verify_connection()
+    
+    async def get_pool(self) -> asyncpg.Pool:
+        """Obtiene o crea el pool de conexiones a la base de datos"""
+        if self.pool is None:
+            try:
+                self.pool = await asyncpg.create_pool(
+                    dsn=settings.DATABASE_URL,
+                    min_size=1,
+                    max_size=10
+                )
+            except Exception as e:
+                logger.error(f"Error al crear el pool de conexiones: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Error al conectar con la base de datos"
+                )
+        return self.pool
     
     def _get_connection_params(self) -> dict:
         """Obtiene los parámetros de conexión optimizados"""
@@ -86,24 +110,24 @@ class DatabaseService:
             formatted_results.append(formatted_row)
         return formatted_results
     
-    async def list_tables(self) -> Dict[str, Any]:
+    async def list_tables(self) -> List[str]:
         """Lista todas las tablas disponibles en la base de datos"""
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT table_name 
-                        FROM information_schema.tables 
-                        WHERE table_schema = 'public'
-                        ORDER BY table_name;
-                    """)
-                    tables = [row['table_name'] for row in cur.fetchall()]
-                    return {
-                        "status": "success",
-                        "tables": tables
-                    }
+            pool = await self.get_pool()
+            async with pool.acquire() as conn:
+                tables = await conn.fetch("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema = 'public'
+                    ORDER BY table_name
+                """)
+                return [table['table_name'] for table in tables]
         except Exception as e:
-            raise DatabaseError(f"Error al listar tablas: {str(e)}")
+            logger.error(f"Error al listar tablas: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Error al obtener la lista de tablas"
+            )
     
     async def get_table_structure(self, table_name: str) -> Dict[str, Any]:
         """Obtiene la estructura de una tabla específica"""
@@ -149,66 +173,83 @@ class DatabaseService:
             raise DatabaseError(f"Error al obtener estructura de la tabla: {str(e)}")
     
     async def get_table_content(
-        self, 
-        table_name: str, 
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
+        self,
+        table_name: str,
+        limit: Optional[int] = 100,
+        offset: Optional[int] = 0,
         order_by: Optional[str] = None,
-        order_direction: Optional[str] = None
+        order_direction: Optional[str] = "ASC"
     ) -> Dict[str, Any]:
-        """Obtiene el contenido de una tabla específica"""
+        """
+        Obtiene el contenido de una tabla específica
+        
+        Args:
+            table_name: Nombre de la tabla
+            limit: Límite de registros a obtener
+            offset: Desplazamiento para paginación
+            order_by: Columna por la que ordenar
+            order_direction: Dirección del ordenamiento (ASC/DESC)
+            
+        Returns:
+            Dict con los datos de la tabla y metadatos
+        """
         try:
-            # Verificar que la tabla existe
-            if not await self._table_exists(table_name):
-                raise TableNotFoundError(table_name)
-            
-            # Construir la consulta base
+            # Validar parámetros
+            if not table_name:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El nombre de la tabla es requerido"
+                )
+                
+            if order_direction not in ["ASC", "DESC"]:
+                order_direction = "ASC"
+                
+            # Construir la consulta
             query = f"SELECT * FROM {table_name}"
-            
-            # Añadir ordenamiento si se especifica
             if order_by:
-                direction = "DESC" if order_direction and order_direction.upper() == "DESC" else "ASC"
-                query += f" ORDER BY {order_by} {direction}"
+                query += f" ORDER BY {order_by} {order_direction}"
+            query += f" LIMIT {limit} OFFSET {offset}"
             
-            # Añadir límite y offset si se especifican
-            if limit is not None:
-                query += f" LIMIT {limit}"
-            if offset is not None:
-                query += f" OFFSET {offset}"
-            
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    # Obtener datos
-                    cur.execute(query)
-                    results = self._format_results(cur.fetchall())
+            # Ejecutar la consulta
+            pool = await self.get_pool()
+            async with pool.acquire() as conn:
+                # Obtener estructura de la tabla
+                columns = await conn.fetch("""
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = $1
+                """, table_name)
+                
+                if not columns:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"La tabla {table_name} no existe"
+                    )
                     
-                    # Obtener total de registros
-                    cur.execute(f"SELECT COUNT(*) as total FROM {table_name}")
-                    total = cur.fetchone()['total']
-                    
-                    # Obtener columnas
-                    cur.execute("""
-                        SELECT column_name 
-                        FROM information_schema.columns 
-                        WHERE table_schema = 'public' 
-                        AND table_name = %s 
-                        ORDER BY ordinal_position;
-                    """, (table_name,))
-                    columns = [row['column_name'] for row in cur.fetchall()]
-                    
-                    return {
-                        "status": "success",
-                        "table": table_name,
-                        "columns": columns,
-                        "data": results,
-                        "total": total,
-                        "limit": limit,
-                        "offset": offset
-                    }
-        except TableNotFoundError:
+                # Obtener datos
+                rows = await conn.fetch(query)
+                
+                # Convertir a formato JSON
+                data = [dict(row) for row in rows]
+                structure = [dict(col) for col in columns]
+                
+                return {
+                    "table_name": table_name,
+                    "structure": structure,
+                    "data": data,
+                    "total": len(data),
+                    "limit": limit,
+                    "offset": offset
+                }
+                
+        except HTTPException:
             raise
         except Exception as e:
-            raise DatabaseError(f"Error al obtener contenido de la tabla: {str(e)}")
+            logger.error(f"Error al obtener contenido de la tabla {table_name}: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al obtener datos de la tabla {table_name}"
+            )
     
     def _is_safe_query(self, query: str) -> bool:
         """
@@ -302,78 +343,55 @@ class DatabaseService:
         except Exception as e:
             raise DatabaseError(f"Error al descubrir tablas: {str(e)}")
 
-    async def execute_query(self, query: str, params: Optional[tuple] = None) -> Dict[str, Any]:
+    async def execute_query(self, query: str) -> Dict[str, Any]:
         """
-        Ejecuta una consulta SQL personalizada con validación de seguridad.
-        Permite operaciones CRUD básicas.
+        Ejecuta una consulta SQL personalizada
+        
+        Args:
+            query: Consulta SQL a ejecutar
+            
+        Returns:
+            Dict con los resultados de la consulta
         """
         try:
-            # Validar que la consulta sea segura
-            if not self._is_safe_query(query):
-                raise ValidationError(
-                    "La consulta no está permitida por razones de seguridad. " +
-                    "Solo se permiten operaciones CRUD básicas (SELECT, INSERT, UPDATE, DELETE, CREATE TABLE, ALTER TABLE)."
+            if not query:
+                raise HTTPException(
+                    status_code=400,
+                    detail="La consulta SQL es requerida"
                 )
-            
-            print(f"Ejecutando consulta: {query}")  # Log para depuración
-            
-            # Si es una operación de modificación, verificar primero el estado actual
-            if any(query.lower().strip().startswith(op) for op in ['alter table', 'drop table', 'rename table']):
-                # Descubrir tablas antes de la operación
-                tables_before = await self.discover_tables()
-                print(f"Estado de tablas antes de la operación: {tables_before}")
-            
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    # Ejecutar la consulta
-                    cur.execute(query, params)
-                    
-                    # Si es una consulta SELECT, retornar los resultados
-                    if query.lower().strip().startswith('select'):
-                        results = self._format_results(cur.fetchall())
-                        return {
-                            "status": "success",
-                            "results": results
-                        }
-                    
-                    # Para operaciones de modificación
-                    try:
-                        conn.commit()
-                        print(f"Cambios guardados exitosamente. Filas afectadas: {cur.rowcount}")
-                        
-                        # Si fue una operación de modificación, verificar el nuevo estado
-                        if any(query.lower().strip().startswith(op) for op in ['alter table', 'drop table', 'rename table']):
-                            tables_after = await self.discover_tables()
-                            print(f"Estado de tablas después de la operación: {tables_after}")
-                            
-                            # Comparar estados para verificar cambios
-                            if len(tables_after['tables']) != len(tables_before['tables']):
-                                return {
-                                    "status": "success",
-                                    "message": "Operación completada. Se detectaron cambios en la estructura de las tablas.",
-                                    "affected_rows": cur.rowcount,
-                                    "tables_before": tables_before,
-                                    "tables_after": tables_after
-                                }
-                        
-                        return {
-                            "status": "success",
-                            "message": "Operación ejecutada correctamente",
-                            "affected_rows": cur.rowcount
-                        }
-                    except Exception as commit_error:
-                        print(f"Error al hacer commit: {str(commit_error)}")
-                        conn.rollback()
-                        raise DatabaseError(f"Error al guardar los cambios: {str(commit_error)}")
-                    
-        except Exception as e:
-            if 'conn' in locals():
+                
+            # Validar que la consulta sea de solo lectura
+            query_lower = query.lower().strip()
+            if any(keyword in query_lower for keyword in ["insert", "update", "delete", "drop", "alter", "create"]):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Solo se permiten consultas de lectura (SELECT)"
+                )
+                
+            pool = await self.get_pool()
+            async with pool.acquire() as conn:
                 try:
-                    conn.rollback()
-                    print(f"Rollback ejecutado debido a: {str(e)}")
-                except Exception as rollback_error:
-                    print(f"Error al hacer rollback: {str(rollback_error)}")
-            raise QueryError(query, str(e))
+                    rows = await conn.fetch(query)
+                    data = [dict(row) for row in rows]
+                    return {
+                        "status": "success",
+                        "data": data,
+                        "total": len(data)
+                    }
+                except asyncpg.exceptions.PostgresError as e:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Error en la consulta SQL: {str(e)}"
+                    )
+                    
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error al ejecutar consulta: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Error al ejecutar la consulta SQL"
+            )
     
     async def _table_exists(self, table_name: str) -> bool:
         """Verifica si una tabla existe en la base de datos"""
@@ -390,6 +408,12 @@ class DatabaseService:
                     return cur.fetchone()['exists']
         except Exception as e:
             raise DatabaseError(f"Error al verificar existencia de la tabla: {str(e)}")
+
+    async def close(self):
+        """Cierra el pool de conexiones"""
+        if self.pool:
+            await self.pool.close()
+            self.pool = None
 
 # Instancia global del servicio de base de datos
 db_service = DatabaseService() 
